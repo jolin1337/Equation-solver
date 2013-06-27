@@ -7,3 +7,7 @@ all: equ_solver
 
 equ_solver: $(cpps) $(header)
 	$(CPP) -o equ_solver $(cpps)
+
+
+run: equ_solver
+	./equ_solver

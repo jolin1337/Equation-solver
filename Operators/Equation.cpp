@@ -25,7 +25,57 @@ Equation::~Equation(){
 		delete RH;
 }
 
-double Equation::calc() throw(const char *){
+var Equation::compute_show(){
+	var words;
+	std::string d = LH->data;
+	std::string a = "a";
+	for (int i = 0; i < d.size(); i++) {
+		if(isalpha(d[i])){
+			for (int j = i; j < d.size(); j++) {
+				if(!isalpha(d[j])){
+					std::string t = d.substr(i,j-i);
+					if(!words[t]){
+						words[t] = a[0];
+						a[0]++;
+					}
+					std::string an = "a";
+					an[0] = (char)words[t];
+					d.replace(i,j-i,an);
+					i++;
+					break;
+				}
+				if(j+1 >= d.size()){
+					std::string t = d.substr(i,j-i);
+					if(t.empty())
+						continue;
+					d.replace(i,std::string::npos,a);
+					words[t]++;
+					i = j;
+				}
+			}
+		}
+	}
+	std::string op = words.begin()->first;
+	if(words.begin()->first == "lim"){
+		// calc limit
+		std::cout << "LIMIT CALC:...\n";
+	}
+	for (var::iterator it = words.begin(); it != words.end(); ++it) {
+		std::cout << it->first <<"=" << (char)it->second << "\n"; 
+	}
+	return words;
+}
+
+std::string Equation::calc() throw(const char *){
+	if(LH && RH)
+		return Equation(LH->vStr() + "-" + RH->vStr()).calc();
+	if(LH)
+		return LH->vStr();
+	if(RH)
+		return RH->vStr();
+	throw "Not defined equation";
+}
+double Equation::eval() throw(const char *){
 	if(LH && RH)
 		return (LH->value() - RH->value());
 	if(LH)
@@ -156,10 +206,146 @@ void Equation::Node::print() const{
 	std::cout << getStr();
 	std::cout << "\n";
 }
+std::string Equation::Node::vStr() const  throw(const char *){
+	var vals;
+	double v = 0;
+	std::string vv = "";
+	if(!a && !b){
+		std::string d = Data();
+		int i = d.find_first_of("*/-+",1);
+		while(d[i-1] == '*' && (d[i] == '-' || d[i] == '+'))
+			i = d.find_first_of("*-+",i+1);
+		char c = d[i];
+		std::replace(d.begin(), d.end(), c, ' ');
+		if(c == '*')
+			v++;
+		bool df = 0;
+		std::stringstream ss(d);
+		while(!ss.eof()){
+			double tmp;
+			char variable = '\0';
+			if(!(ss >> tmp)){// TODO: Store variable from ss.str()
+				std::string rem;
+				ss.str(ss.str());
+				ss.clear();
+				double remRes = 1.0;
+				std::string cc;
+				while(!ss.eof()){
+					if(!(ss >> tmp)){
+						if(ss.eof())
+							break;
+						ss.clear();
+						cc += ss.get();
+						continue;
+					}
+					remRes *= tmp;
+				}
+				v -= remRes;
+				std::stringstream ss2;
+				ss2 << v;
+				vv = ss2.str();
+				ss2.str("");
+				ss2.clear();
+				ss2 << remRes;
+				vv = ss2.str() + '*' + cc;
+				return vv;
+			}
+			switch(c){
+				case '*':
+					v*=tmp;
+					break;
+				case '/':
+					if(!df){
+						v = tmp;
+						df = true;
+					}
+					else{
+						// if(tmp == 0)
+						// 	throw "Division by zero!";
+						v /= tmp;
+					}
+					break;
+				default:
+					v += tmp;
+			}
+			std::stringstream ss2;
+			ss2 << v;				// TODO: add all variables as well!
+			vv = ss2.str();
+		}
+	}
+	else{
+		std::string va = "", vb = "";
+		if(a)
+			va = a->vStr();
+		if(b)
+			vb = b->vStr();
+		if(op == X && a && b)
+			vv += va + "*" + vb;
+		else if(op == D && a && b){
+			std::string val = vb;	// TODO: separate under paranteses if posible!??
+			// if(val == 0)
+			// 	throw "Division by zero!";
+			vv += va + "/" + val;
+		}
+		else{
+			if(a)
+				vv += "+" + va;
+			if(b)
+				vv += "+" + vb;
+		}
+		Node *tmp = new Node(vv);
+
+		std::string vars = "";
+		for (size_t i = 0; i < vv.length(); ++i)
+			if(isalpha(vv[i])){
+				int begin = vv.find_last_of("+-",i),
+					end = vv.find_first_of("+-",i);
+				while(begin > 0 && vv[begin] == '-' && vv[begin-1] == '*')
+					vv.find_last_of("+-",begin-1);
+				while(end > 0 && vv[end] == '-' && vv[end-1] == '*')
+					vv.find_first_of("+-",end+1);
+				if(begin == std::string::npos)
+					begin = 0;
+				vars += vv.substr(begin, end - begin);
+				if(end != std::string::npos)
+					i = end+1;
+				else
+					i = vv.length();
+			}
+		std::stringstream ss;
+		ss << tmp->value();	// real value
+		vv = ss.str() + vars;
+		delete tmp;
+		tmp = 0;
+		// for (int i = 0; i < va.size(); i++) {
+		// 	if(isalpha(va[i])){
+		// 		vv = va;
+		// 		break;
+		// 	}
+		// }
+		// for (int i = 0; i < vb.size(); i++) {
+		// 	if(isalpha(vb[i])){
+		// 		if(vv == va)
+		// 			vv += "+"+vb;
+		// 		else
+		// 			vv = vb;
+		// 		break;
+		// 	}
+		// }
+	}
+	return vv;
+	/*std::stringstream ss;
+	double d = value();
+	ss << d;
+	std::string v = ss.str();
+	return v;*/
+}
 double Equation::Node::value() const  throw(const char *){
 	double v = 0;
 	if(!a && !b){
 		std::string d = Data();
+		if(d.empty())
+			return 0;
 		int i = d.find_first_of("*/-+",1);
 		while(d[i-1] == '*' && (d[i] == '-' || d[i] == '+'))
 			i = d.find_first_of("*-+",i+1);
@@ -172,7 +358,19 @@ double Equation::Node::value() const  throw(const char *){
 		std::stringstream ss(d);
 		while(!ss.eof()){
 			double tmp;
-			if(!(ss >> tmp)) break;
+			if(!(ss >> tmp)){
+				std::string rem;
+				ss.str(ss.str());
+				ss.clear();
+				double remRes = 1.0;
+				while(!ss.eof()){
+					if(!(ss >> tmp))
+						break;
+					remRes *= tmp;
+				}
+				v -= remRes;
+				return v;
+			}
 			switch(c){
 				case '*':
 					v*=tmp;

@@ -24,8 +24,6 @@ int help(){
 	return 0;
 }
 
-
-
 int main(int argc, char *argv[]) {
 
 	try{
@@ -60,7 +58,8 @@ int main(int argc, char *argv[]) {
 			return 0;
 		}
 		Equation o(strEq);//("2c(x+2)+(x+2)c3+x^3-2(3-cx)c + 2*c*(x+2)+(x+2)*2*c + 2*(x+2)*c");
-		std::cout << o << "=" << (o.calc()) << "\n";
+		// o.compute_show();
+		std::cout << o << "=>" << (o.calc()) << "\n";
 	}
 	catch(const char *e){
 		std::cout << e << std::endl;

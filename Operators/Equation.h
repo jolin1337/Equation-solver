@@ -8,7 +8,7 @@
 #include <iostream>
 
 
-typedef std::map<char, double> var;
+typedef std::map<std::string, double> var;
 class Equation {
 public:
 	static const double Infinity;
@@ -17,7 +17,9 @@ public:
 	};
 	Equation(std::string str = "");
 	~Equation();
-	double calc() throw(const char *);
+	var compute_show();
+	std::string calc() throw(const char *);
+	double eval() throw(const char *);
 
 	static void removeSpaces(std::string &str);
 	operator const char *(){
@@ -47,6 +49,7 @@ private:
 		 */
 		void print() const;
 
+		std::string vStr() const throw(const char *);
 		/** 
 		 * calculates the value of the equation term by term
 		 * @return the calculated value
